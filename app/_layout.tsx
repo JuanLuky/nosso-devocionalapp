@@ -1,24 +1,52 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { Stack, useRouter, useSegments } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect, useState } from "react";
+import { useAuthStore } from "@/stores/authStore";
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const router = useRouter();
+  const segments = useSegments();
+  const { isAuthenticated, checkSession } = useAuthStore();
+
+  // 1. Estado para evitar navegação prematura
+  const [isReady, setIsReady] = useState(false);
+
+  // 2. Inicialização da sessão
+  useEffect(() => {
+    async function initialize() {
+      await checkSession();
+      setIsReady(true);
+    }
+    initialize();
+  }, []);
+
+  // 3. Monitoramento de autenticação e rotas
+  useEffect(() => {
+    // Se ainda está carregando ou o roteador não montou, cancela a execução
+    if (!isReady) return;
+
+    const inAuthGroup = segments[0] === "(auth)";
+
+    if (!isAuthenticated && !inAuthGroup) {
+      // Redireciona para o login se não estiver autenticado
+      router.replace("/(auth)/login");
+    } else if (isAuthenticated && inAuthGroup) {
+      // Redireciona para as tabs se estiver autenticado e tentar acessar login
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated, segments, isReady]);
+
+  // 4. Enquanto checa a sessão, podemos exibir nada (ou um SplashScreen)
+  if (!isReady) return null;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <>
+      <StatusBar style="dark" />
       <Stack>
+        {/* Definimos apenas as portas de entrada dos grupos */}
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    </>
   );
 }

@@ -1,98 +1,338 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+// app/(tabs)/index.tsx
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  Platform,
+  Vibration,
+  Keyboard,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Header } from '../../components/Header';
+import { VerseCard } from '../../components/VerseCard';
+import { EmptyState } from '../../components/EmptyState';
+import { VerseForm } from '../../components/VerseForm';
+import { SuccessAlert } from '../../components/SuccessAlert';
+import { Notification } from '../../components/Notification';
+import { colors } from '../../utils/colors';
+import type { Devocional, TipoReacao } from '../../types';
+import { useAuthStore } from '../../stores/authStore';
+import { buscarDevocional, criarDevocional } from '../../services/api/devocionalService';
+import { reagir } from '../../services/api/reactionService';
+import { conectarWebSocket, desconectarWebSocket, isConnecteds } from '@/services/websocket/websocket';
+import {NotificationReaction} from "@/components/NotificationReaction";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const router = useRouter();
+  const { sessao, logout } = useAuthStore();
+  const insets = useSafeAreaInsets();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const [currentVerse, setCurrentVerse] = useState<Devocional | null>(null);
+  const [newVerse, setNewVerse] = useState('');
+  const [reference, setReference] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [showNotificationReaction, setShowNotificationReaction] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+
+  const bottomPadding = Math.min(keyboardHeight, 220);
+
+  // 1. Listener do teclado
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const userName = sessao?.usuario || '';
+  const codigoCasal = sessao?.codigoCasal || '';
+
+  // 2. Buscar devocional inicial
+  useEffect(() => {
+    if (!codigoCasal || !userName) {
+      console.log('⚠️ Sessão incompleta:', { codigoCasal, userName });
+      return;
+    }
+
+    console.log('🔍 Buscando devocional inicial...');
+    buscarDevocional(codigoCasal, userName)
+        .then((data) => {
+          console.log('✅ Devocional encontrado:', {
+            autor: data.autor,
+            referencia: data.referencia,
+          });
+          setCurrentVerse(data);
+          setIsConnected(true);
+        })
+        .catch((error) => {
+          console.log('ℹ️ Nenhum devocional encontrado ainda');
+          setCurrentVerse(null);
+          setIsConnected(true);
+        });
+  }, [codigoCasal, userName]);
+
+  // 3. Conectar WebSocket
+  useEffect(() => {
+    if (!codigoCasal || !userName) {
+      console.log('⚠️ Não conectando WebSocket - sessão incompleta');
+      return;
+    }
+
+    console.log('🔌 Conectando WebSocket para:', { codigoCasal, userName });
+
+    conectarWebSocket(codigoCasal, (payload) => {
+      console.log('📨 WebSocket: Payload recebido!', {
+        remetente: payload.remetente,
+        autor: payload.devocional.autor,
+        meuUsuario: userName,
+      });
+
+      const { devocional, remetente, tipo } = payload;
+
+      // Atualizar estado do devocional atual
+      setCurrentVerse((prev) => {
+        if (!prev) return devocional;
+
+        // 🔥 Se for reação, só atualiza reações
+        if (tipo === "REACAO") {
+          return {
+            ...prev,
+            contagemReacoes: devocional.contagemReacoes ?? prev.contagemReacoes,
+            minhaReacao: devocional.minhaReacao ?? prev.minhaReacao,
+          };
+        }
+
+        // 📖 Se for devocional novo, substitui tudo
+        return devocional;
+      });
+
+      // notificar apenas quando for REACAO
+        if (tipo === "REACAO" && remetente !== userName) {
+          console.log('🔔 Mostrando notificação de reação!');
+          setShowNotificationReaction(true);
+
+          // Vibrar
+          if (Platform.OS !== 'web') {
+            Vibration.vibrate(200);
+          }
+
+          // Esconder notificação após 5s
+          setTimeout(() => {
+            setShowNotificationReaction(false);
+          }, 5000);
+
+          return;
+        }
+
+      // Se eu mesmo enviei, não mostrar notificação
+      if (remetente === userName) {
+        console.log('ℹ️ Eu mesmo enviei, não notificar');
+        return;
+      }
+
+      // Mostrar notificação para mensagens de outros
+      console.log('🔔 Mostrando notificação!');
+      setShowNotification(true);
+
+      // Vibrar
+      if (Platform.OS !== 'web') {
+        Vibration.vibrate(200);
+      }
+
+      // Esconder notificação após 5s
+      setTimeout(() => {
+        setShowNotification(false);
+      }, 5000);
+    });
+
+    // Verificar status da conexão após 2s
+    setTimeout(() => {
+      console.log('🔍 Status WebSocket:', isConnecteds() ? 'CONECTADO ✅' : 'DESCONECTADO ❌');
+    }, 2000);
+
+    return () => {
+      console.log('🔌 Desconectando WebSocket...');
+      desconectarWebSocket();
+    };
+  }, [codigoCasal, userName]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.replace('/(auth)/login');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
+  };
+
+  const handleSendVerse = async () => {
+    if (!newVerse.trim() || !reference.trim()) return;
+
+    try {
+      console.log('📤 Enviando devocional...');
+      await criarDevocional({
+        codigoCasal,
+        autor: userName,
+        versiculo: newVerse,
+        referencia: reference,
+      });
+
+      console.log('✅ Devocional enviado com sucesso!');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+
+      // Buscar devocional atualizado
+      const atualizado = await buscarDevocional(codigoCasal, userName);
+      setCurrentVerse(atualizado);
+
+      setNewVerse('');
+      setReference('');
+    } catch (error) {
+      console.error('❌ Erro ao enviar devocional:', error);
+    }
+  };
+
+  const handleReaction = async (tipo: TipoReacao) => {
+    if (!currentVerse) return;
+
+    // Atualização otimista na UI
+    setCurrentVerse((prev) => {
+      if (!prev) return prev;
+
+      const novaContagem = {
+        CORACAO: prev.contagemReacoes.CORACAO ?? 0,
+        AMEM: prev.contagemReacoes.AMEM ?? 0,
+        FOGO: prev.contagemReacoes.FOGO ?? 0,
+      };
+
+      if (prev.minhaReacao) {
+        novaContagem[prev.minhaReacao] = Math.max(
+            0,
+            novaContagem[prev.minhaReacao] - 1
+        );
+      }
+
+      if (prev.minhaReacao === tipo) {
+        return {
+          ...prev,
+          minhaReacao: null,
+          contagemReacoes: novaContagem,
+        };
+      }
+
+      novaContagem[tipo]++;
+
+      return {
+        ...prev,
+        minhaReacao: tipo,
+        contagemReacoes: novaContagem,
+      };
+    });
+
+    try {
+      await reagir({
+        devocionalId: currentVerse.id,
+        autor: userName,
+        tipoReacao: tipo,
+      });
+      console.log('✅ Reação enviada:', tipo);
+    } catch (error) {
+      console.error('❌ Erro ao enviar reação:', error);
+    }
+  };
+
+  return (
+      <LinearGradient
+          colors={[colors.rose50, colors.white, colors.pink50]}
+          style={styles.container}
+      >
+        {showNotification && (
+            <Notification onClose={() => setShowNotification(false)} />
+        )}
+        {showSuccess && <SuccessAlert />}
+        {showNotificationReaction && <NotificationReaction />}
+
+        <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[
+              styles.scrollContent,
+              {
+                paddingTop: Math.max(insets.top, 16) + 24,
+                paddingBottom: Math.max(insets.bottom, 16) + bottomPadding,
+              }
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            scrollEnabled={true}
+            bounces={false}
+        >
+          <Header
+              userName={userName}
+              isConnected={isConnected}
+              onLogout={handleLogout}
+          />
+
+          {currentVerse ? (
+              <VerseCard devocional={currentVerse} onReact={handleReaction} />
+          ) : (
+              <EmptyState />
+          )}
+
+          <LinearGradient
+              colors={[colors.white, colors.rose50]}
+              style={styles.formCard}
+          >
+            <VerseForm
+                verse={newVerse}
+                reference={reference}
+                onVerseChange={setNewVerse}
+                onReferenceChange={setReference}
+                onSubmit={handleSendVerse}
+                disabled={!newVerse.trim() || !reference.trim()}
+            />
+          </LinearGradient>
+        </ScrollView>
+      </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: colors.rose50,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  scrollView: {
+    flex: 1,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  scrollContent: {
+    paddingHorizontal: 16,
+    gap: 32,
+  },
+  formCard: {
+    backgroundColor: colors.rose50,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.stone200,
+    padding: 24,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });
