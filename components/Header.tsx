@@ -1,10 +1,11 @@
 // src/components/Header.tsx
 
+import { colors } from "@/utils/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { colors } from "@/utils/colors";
+import { TitleAnimate } from "./TitleAnimate";
 
 interface HeaderProps {
   userName: string;
@@ -29,7 +30,8 @@ export const Header: React.FC<HeaderProps> = ({
           </LinearGradient>
 
           <View>
-            <Text style={styles.title}>Nosso{"\n"}Devocional</Text>
+            <TitleAnimate children="Nosso" />
+            <TitleAnimate children="Devocional" />
             <Text style={styles.subtitle}>Compartilhando fé e amor</Text>
           </View>
         </View>
@@ -107,7 +109,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   title: {
-    fontSize: 28,
+    fontSize: 50,
     fontWeight: "bold",
     color: colors.rose500,
     lineHeight: 32,
@@ -115,11 +117,11 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 12,
     color: colors.stone500,
-    marginTop: 2,
+    marginTop: 16,
   },
   logoutButton: {
     padding: 12,
-    marginRight:8,
+    marginRight: 8,
     backgroundColor: colors.stone50,
     borderRadius: 12,
   },

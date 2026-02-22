@@ -1,7 +1,7 @@
+import { useAuthStore } from "@/stores/authStore";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { useAuthStore } from "@/stores/authStore";
 
 export default function RootLayout() {
   const router = useRouter();
