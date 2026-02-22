@@ -1,83 +1,129 @@
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-    Animated,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { colors } from "../utils/colors";
 
 interface NotificationProps {
+  isOpen: boolean;
   onClose: () => void;
 }
 
-export const Notification: React.FC<NotificationProps> = ({ onClose }) => {
-  const slideAnim = React.useRef(new Animated.Value(-100)).current;
+export const Notification: React.FC<NotificationProps> = ({
+  isOpen,
+  onClose,
+}) => {
+  const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
+  const opacityAnim = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
-    Animated.spring(slideAnim, {
-      toValue: 0,
-      tension: 50,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
-  }, []);
+    if (isOpen) {
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 60,
+          friction: 7,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      scaleAnim.setValue(0.8);
+      opacityAnim.setValue(0);
+    }
+  }, [isOpen]);
 
   return (
-    <Animated.View
-      style={[styles.container, { transform: [{ translateY: slideAnim }] }]}
-    >
-      <LinearGradient
-        colors={[colors.rose500, colors.pink500]}
-        style={styles.notification}
-      >
-        <Ionicons name="heart" size={24} color={colors.white} />
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>Novo versículo!</Text>
-          <Text style={styles.subtitle}>Seu amor compartilhou uma palavra</Text>
-        </View>
-        <TouchableOpacity onPress={onClose}>
-          <Ionicons name="close" size={20} color={colors.white} />
-        </TouchableOpacity>
-      </LinearGradient>
-    </Animated.View>
+    <Modal visible={isOpen} transparent animationType="fade">
+      <View style={styles.overlay}>
+        <Animated.View
+          style={[
+            styles.cardWrapper,
+            {
+              transform: [{ scale: scaleAnim }],
+              opacity: opacityAnim,
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={[colors.white, colors.rose50]}
+            style={styles.notification}
+          >
+            <MaterialCommunityIcons
+              name="email-alert"
+              size={32}
+              color={colors.rose500}
+            />
+
+            <Text style={styles.title}>Nova Palavra Recebida</Text>
+            <Text style={styles.subtitle}>
+              Seu amor acabou de compartilhar um novo devocional com você.
+            </Text>
+
+            <TouchableOpacity style={styles.button} onPress={onClose}>
+              <Text style={styles.buttonText}>Ver Agora</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    position: "absolute",
-    top: 64,
-    left: 16,
-    right: 16,
-    zIndex: 1000,
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cardWrapper: {
+    width: "85%",
   },
   notification: {
-    flexDirection: "row",
+    padding: 24,
+    borderRadius: 20,
     alignItems: "center",
-    padding: 16,
-    borderRadius: 12,
     gap: 12,
     shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  textContainer: {
-    flex: 1,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 12,
   },
   title: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
-    color: colors.white,
+    color: colors.rose500,
+    textAlign: "center",
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 14,
+    color: colors.stone500,
+    textAlign: "center",
+  },
+  button: {
+    marginTop: 12,
+    backgroundColor: colors.rose500,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 50,
+  },
+  buttonText: {
     color: colors.rose100,
-    marginTop: 2,
+    fontWeight: "600",
+    fontSize: 12,
   },
 });
