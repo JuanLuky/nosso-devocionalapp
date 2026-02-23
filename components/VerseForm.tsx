@@ -2,11 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { colors } from "../utils/colors";
 
@@ -34,7 +34,7 @@ export const VerseForm: React.FC<VerseFormProps> = ({
         <TextInput
           value={verse}
           onChangeText={onVerseChange}
-          placeholder="Digite o versículo que tocou seu coração..."
+          placeholder="Compartilhe um versículo que te inspirou hoje..."
           placeholderTextColor={colors.stone400}
           multiline
           numberOfLines={4}
@@ -62,7 +62,7 @@ export const VerseForm: React.FC<VerseFormProps> = ({
         <LinearGradient
           colors={
             disabled
-              ? [colors.stone300, colors.stone400]
+              ? [colors.stone400, colors.stone400]
               : [colors.rose500, colors.pink500]
           }
           style={styles.button}
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     color: colors.stone700,
-    minHeight: 120,
+    minHeight: 180,
     fontStyle: "italic",
   },
   input: {
@@ -114,11 +114,10 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 16,
     borderRadius: 12,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: colors.stone400,
     shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowRadius: 4,
+    elevation: 4,
   },
   buttonText: {
     fontSize: 16,

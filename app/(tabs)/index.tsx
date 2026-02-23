@@ -282,7 +282,7 @@ export default function HomeScreen() {
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: Math.max(insets.top, 16) + 24,
+            paddingTop: Math.max(insets.top, 16) + 16,
             paddingBottom: Math.max(insets.bottom, 16) + bottomPadding,
           },
         ]}
@@ -339,10 +339,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.stone200,
     padding: 24,
-    shadowColor: colors.black,
+    shadowColor: colors.stone300,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: 4,
     elevation: 4,
   },
 });

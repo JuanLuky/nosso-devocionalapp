@@ -8,8 +8,9 @@
     "scheme": "nossodevocionalapp",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "assetBundlePatterns": ["**/*"],
-
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
@@ -22,7 +23,9 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.nossodevocional.nossodevocionalapp",
-      "permissions": ["VIBRATE"],
+      "permissions": [
+        "VIBRATE"
+      ],
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
@@ -31,7 +34,6 @@
     },
     "plugins": [
       "expo-router",
-
       [
         "expo-splash-screen",
         {
@@ -48,6 +50,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "08f8bd5d-ba93-45af-9733-9c26aeab2437"
+      }
     }
   }
 }

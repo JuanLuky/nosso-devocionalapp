@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 8,
-    marginTop: 6,
+    marginTop: 16,
   },
   title: {
     fontSize: 50,
@@ -122,6 +122,7 @@ const styles = StyleSheet.create({
   logoutButton: {
     padding: 12,
     marginRight: 8,
+    marginTop: 14,
     backgroundColor: colors.stone50,
     borderRadius: 12,
   },

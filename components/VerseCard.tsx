@@ -1,10 +1,10 @@
-import {FontAwesome5} from '@expo/vector-icons';
+import { FontAwesome5 } from "@expo/vector-icons";
 
+import type { Devocional, TipoReacao } from "@/types";
+import { colors } from "@/utils/colors";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import type { Devocional, TipoReacao } from "@/types";
-import { colors } from "@/utils/colors";
 import { ReactionBar } from "./ReactionBar";
 
 interface VerseCardProps {
@@ -82,13 +82,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  cardWrapper: {
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
+  cardWrapper: {},
   card: {
     borderRadius: 16,
     borderWidth: 1,
